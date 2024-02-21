@@ -10,6 +10,4 @@ if (process.env.IS_OFFLINE) {
   }
 }
 
-console.log(options)
-
 export default new DynamoDB.DocumentClient(options)

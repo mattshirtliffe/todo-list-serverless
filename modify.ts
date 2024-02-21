@@ -5,47 +5,40 @@ import dynamoDB from './dynamodb'
 
 const tableName = process.env.DYNAMODB_TABLE
 
+class ServiceError extends Error {
+  statusCode: number
+
+  constructor(message: string, statusCode: number) {
+    super(message)
+    this.statusCode = statusCode
+  }
+}
+
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   try {
     if (!tableName) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: 'DYNAMODB_TABLE environment variable not defined',
-        }),
-      }
+      throw new ServiceError(
+        'DYNAMODB_TABLE environment variable not defined',
+        500
+      )
     }
 
     if (!event.pathParameters || !event.pathParameters.id) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: 'Bad Request: No ID provided in path parameters',
-        }),
-      }
+      throw new ServiceError(
+        'Bad Request: No ID provided in path parameters',
+        400
+      )
     }
 
     const id = event.pathParameters.id
 
     if (!event.body) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Bad Request: No data provided' }),
-      }
+      throw new ServiceError('Bad Request: No body provided', 400)
     }
 
     const body = JSON.parse(Buffer.from(event.body, 'base64').toString())
-
-    if (!body.text) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: 'Bad Request: Missing required field "text"',
-        }),
-      }
-    }
 
     const updateExpressionParts: string[] = []
     const expressionAttributeValues = {}
@@ -91,10 +84,13 @@ export const handler = async (
     }
   } catch (error) {
     console.error(error)
+    const statusCode = error.statusCode || 500
+    const errorMessage =
+      error.statusCode !== 500 ? error.message : 'Internal Server Error'
     return {
-      statusCode: 500,
+      statusCode,
       body: JSON.stringify({
-        error: 'Internal Server Error',
+        error: errorMessage,
       }),
     }
   }
