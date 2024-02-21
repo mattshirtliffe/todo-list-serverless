@@ -1,0 +1,24 @@
+{
+  "name": "aws-node-typescript-rest-api-with-dynamodb",
+  "version": "1.0.0",
+  "description": "A todo list api using serverless and typescript",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.134",
+    "@types/uuid": "^9.0.8",
+    "serverless": "^3.38.0",
+    "serverless-better-credentials": "^2.0.0",
+    "serverless-offline": "^13.3.3",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1561.0",
+    "source-map-support": "^0.5.21",
+    "uuid": "^9.0.1"
+  }
+}
