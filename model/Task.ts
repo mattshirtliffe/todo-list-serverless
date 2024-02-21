@@ -26,25 +26,14 @@ export default class Task {
 
     try {
       const result = await this.dynamoDB.scan(params).promise()
-
-      if (result.Items) {
-        return result.Items.map((task: any) => ({
-          id: task.id,
-          text: task.text,
-          done: task.done,
-          createdAt: task.createdAt,
-          updatedAt: task.updatedAt,
-        })) as TaskType[]
-      }
-
-      return []
+      return result.Items as TaskType[]
     } catch (error) {
       console.error('Error listing tasks:', error)
       throw error
     }
   }
 
-  async fetch(id: string) {
+  async fetch(id: string): Promise<TaskType | null> {
     try {
       const params: DynamoDB.DocumentClient.GetItemInput = {
         Key: { id },
@@ -64,7 +53,7 @@ export default class Task {
       const expressionAttributeValues = {}
       const expressionAttributeNames = {}
 
-      if (text) {
+      if (text !== undefined) {
         updateExpressionParts.push('#text = :text')
         expressionAttributeValues[':text'] = text
         expressionAttributeNames['#text'] = 'text'
