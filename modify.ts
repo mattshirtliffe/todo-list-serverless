@@ -1,9 +1,8 @@
-import { DynamoDB } from 'aws-sdk'
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 
-import dynamoDB from './dynamodb'
 import ServiceError from './lib/ServiceError'
 import { handleErrorResponse } from './lib/error'
+import Task from './model/Task'
 
 const tableName = process.env.DYNAMODB_TABLE
 
@@ -31,42 +30,12 @@ export const handler = async (
       throw new ServiceError('Bad Request: No body provided', 400)
     }
 
-    const body = JSON.parse(Buffer.from(event.body, 'base64').toString())
+    const { text, done } = JSON.parse(
+      Buffer.from(event.body, 'base64').toString()
+    )
 
-    const updateExpressionParts: string[] = []
-    const expressionAttributeValues = {}
-    const expressionAttributeNames = {}
-
-    if (body.text) {
-      updateExpressionParts.push('#text = :text')
-      expressionAttributeValues[':text'] = body.text
-      expressionAttributeNames['#text'] = 'text'
-    }
-
-    if (body.done !== undefined) {
-      updateExpressionParts.push('#done = :done')
-      expressionAttributeValues[':done'] = body.done
-      expressionAttributeNames['#done'] = 'done'
-    }
-
-    updateExpressionParts.push('#updatedAt = :updatedAt')
-    expressionAttributeValues[':updatedAt'] = new Date().getTime().toString()
-    expressionAttributeNames['#updatedAt'] = 'updatedAt'
-
-    const updateExpression = `set ${updateExpressionParts.join(', ')}`
-
-    const params: DynamoDB.DocumentClient.UpdateItemInput = {
-      TableName: tableName,
-      Key: {
-        id: id,
-      },
-      UpdateExpression: updateExpression,
-      ExpressionAttributeNames: expressionAttributeNames,
-      ExpressionAttributeValues: expressionAttributeValues,
-      ReturnValues: 'ALL_NEW',
-    }
-
-    const updatedTask = await dynamoDB.update(params).promise()
+    const task = new Task(tableName)
+    const updatedTask = await task.modify(id, text, done)
 
     return {
       statusCode: 200,

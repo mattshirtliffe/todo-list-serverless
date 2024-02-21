@@ -1,9 +1,7 @@
-import { DynamoDB } from 'aws-sdk'
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-
-import dynamoDB from './dynamodb'
 import ServiceError from './lib/ServiceError'
 import { handleErrorResponse } from './lib/error'
+import Task from './model/Task'
 
 const tableName = process.env.DYNAMODB_TABLE
 
@@ -24,19 +22,17 @@ export const handler = async (
         400
       )
     }
-    const params: DynamoDB.DocumentClient.GetItemInput = {
-      Key: { id: event.pathParameters.id },
-      TableName: tableName,
-    }
-    const result = await dynamoDB.get(params).promise()
 
-    if (!result.Item) {
+    const task = new Task(tableName)
+    const result = await task.fetch(event.pathParameters.id)
+
+    if (!result) {
       throw new ServiceError('Task not found', 404)
     }
 
     return {
       statusCode: 200,
-      body: JSON.stringify(result.Item),
+      body: JSON.stringify(result),
     }
   } catch (error) {
     return handleErrorResponse(error)
