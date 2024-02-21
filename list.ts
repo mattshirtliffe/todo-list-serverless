@@ -2,23 +2,22 @@ import { DynamoDB } from 'aws-sdk'
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 
 import dynamoDB from './dynamodb'
+import ServiceError from './lib/ServiceError'
+import { handleErrorResponse } from './lib/error'
 
 const tableName = process.env.DYNAMODB_TABLE
-
-console.log(tableName)
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   try {
     if (!tableName) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: 'DYNAMODB_TABLE environment variable not defined',
-        }),
-      }
+      throw new ServiceError(
+        'DYNAMODB_TABLE environment variable not defined',
+        500
+      )
     }
+
     const params: DynamoDB.DocumentClient.ScanInput = {
       TableName: tableName,
     }
@@ -52,12 +51,6 @@ export const handler = async (
       }),
     }
   } catch (error) {
-    console.error(error)
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: 'Internal Server Error',
-      }),
-    }
+    return handleErrorResponse(error)
   }
 }

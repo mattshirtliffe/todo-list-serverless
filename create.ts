@@ -3,6 +3,8 @@ import { DynamoDB } from 'aws-sdk'
 import dynamoDB from './dynamodb'
 
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
+import { handleErrorResponse } from './lib/error'
+import ServiceError from './lib/ServiceError'
 
 const tableName = process.env.DYNAMODB_TABLE
 
@@ -11,30 +13,20 @@ export const handler = async (
 ): Promise<APIGatewayProxyResult> => {
   try {
     if (!tableName) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: 'DYNAMODB_TABLE environment variable not defined',
-        }),
-      }
+      throw new ServiceError(
+        'DYNAMODB_TABLE environment variable not defined',
+        500
+      )
     }
 
     if (!event.body) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Bad Request: No data provided' }),
-      }
+      throw new ServiceError('Bad Request: No data provided', 400)
     }
 
     const { text } = JSON.parse(Buffer.from(event.body, 'base64').toString())
 
     if (!text) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: 'Bad Request: Missing required field "text"',
-        }),
-      }
+      throw new ServiceError('Bad Request: Missing required field "text"', 400)
     }
 
     const timestamp = new Date().getTime()
@@ -57,12 +49,6 @@ export const handler = async (
       body: JSON.stringify({ message: 'Task created successfully' }),
     }
   } catch (error) {
-    console.error(error)
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: 'Internal Server Error',
-      }),
-    }
+    return handleErrorResponse(error)
   }
 }

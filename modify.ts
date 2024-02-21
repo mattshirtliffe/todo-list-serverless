@@ -2,17 +2,10 @@ import { DynamoDB } from 'aws-sdk'
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 
 import dynamoDB from './dynamodb'
+import ServiceError from './lib/ServiceError'
+import { handleErrorResponse } from './lib/error'
 
 const tableName = process.env.DYNAMODB_TABLE
-
-class ServiceError extends Error {
-  statusCode: number
-
-  constructor(message: string, statusCode: number) {
-    super(message)
-    this.statusCode = statusCode
-  }
-}
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -83,15 +76,6 @@ export const handler = async (
       }),
     }
   } catch (error) {
-    console.error(error)
-    const statusCode = error.statusCode || 500
-    const errorMessage =
-      error.statusCode !== 500 ? error.message : 'Internal Server Error'
-    return {
-      statusCode,
-      body: JSON.stringify({
-        error: errorMessage,
-      }),
-    }
+    return handleErrorResponse(error)
   }
 }

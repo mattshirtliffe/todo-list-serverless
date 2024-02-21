@@ -2,6 +2,8 @@ import { DynamoDB } from 'aws-sdk'
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 
 import dynamoDB from './dynamodb'
+import ServiceError from './lib/ServiceError'
+import { handleErrorResponse } from './lib/error'
 
 const tableName = process.env.DYNAMODB_TABLE
 
@@ -9,22 +11,18 @@ export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   try {
-    if (!event.pathParameters || !event.pathParameters.id) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
-          error: 'Bad Request: No ID provided in path parameters',
-        }),
-      }
+    if (!tableName) {
+      throw new ServiceError(
+        'DYNAMODB_TABLE environment variable not defined',
+        500
+      )
     }
 
-    if (!tableName) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({
-          error: 'DYNAMODB_TABLE environment variable not defined',
-        }),
-      }
+    if (!event.pathParameters || !event.pathParameters.id) {
+      throw new ServiceError(
+        'Bad Request: No ID provided in path parameters',
+        400
+      )
     }
     const params: DynamoDB.DocumentClient.GetItemInput = {
       Key: { id: event.pathParameters.id },
@@ -33,12 +31,7 @@ export const handler = async (
     const result = await dynamoDB.get(params).promise()
 
     if (!result.Item) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({
-          error: 'Task not found',
-        }),
-      }
+      throw new ServiceError('Task not found', 404)
     }
 
     return {
@@ -46,12 +39,6 @@ export const handler = async (
       body: JSON.stringify(result.Item),
     }
   } catch (error) {
-    console.error(error)
-    return {
-      statusCode: 500,
-      body: JSON.stringify({
-        error: 'Internal Server Error',
-      }),
-    }
+    return handleErrorResponse(error)
   }
 }
