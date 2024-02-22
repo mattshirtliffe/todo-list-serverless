@@ -35,15 +35,24 @@ export default class Task {
     this.dynamoDBClient = new DynamoDBClient(options)
   }
 
-  async list() {
+  async list(): Promise<TaskType[]> {
     try {
       const params: ScanCommandInput = {
         TableName: this.tableName,
       }
 
       const command = new ScanCommand(params)
-      const response = await this.dynamoDBClient.send(command)
-      return response.Items
+      const result = await this.dynamoDBClient.send(command)
+      if (result.Items) {
+        return result.Items.map((task: any) => ({
+          id: task.id.S,
+          text: task.text.S,
+          done: task.done.BOOL,
+          createdAt: task.createdAt.S,
+          updatedAt: task.updatedAt.S,
+        })) as TaskType[]
+      }
+      return []
     } catch (error) {
       console.error('Error listing tasks:', error)
       throw error
@@ -61,8 +70,17 @@ export default class Task {
         },
       }
       const command = new GetItemCommand(params)
-      const response = await this.dynamoDBClient.send(command)
-      return response.Item
+      const result = await this.dynamoDBClient.send(command)
+
+      if (result.Item) {
+        return {
+          id: result.Item.id.S,
+          text: result.Item.text.S,
+          done: result.Item.done.BOOL,
+          createdAt: result.Item.createdAt.S,
+          updatedAt: result.Item.updatedAt.S,
+        }
+      }
     } catch (error) {
       console.error('Error fetching tasks', error)
       throw error

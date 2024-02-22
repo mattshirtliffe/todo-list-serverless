@@ -43,10 +43,13 @@ export const handler = async (
 
     await task.modify(id, text, done)
 
+    const updatedTask = await task.fetch(id)
+
     return {
       statusCode: 200,
       body: JSON.stringify({
         message: 'Task updated successfully',
+        updatedTask,
       }),
     }
   } catch (error) {
