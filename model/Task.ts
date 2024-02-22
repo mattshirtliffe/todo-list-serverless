@@ -1,9 +1,17 @@
 import { v4 as uuidv4 } from 'uuid'
 import { DynamoDB } from 'aws-sdk'
 
+import {
+  DynamoDBClient,
+  ScanCommand,
+  ScanCommandInput,
+} from '@aws-sdk/client-dynamodb'
+
 export default class Task {
   tableName: string
   dynamoDB: AWS.DynamoDB.DocumentClient
+
+  dynamoDBClient: DynamoDBClient
 
   constructor(tableName: string) {
     this.tableName = tableName
@@ -18,16 +26,18 @@ export default class Task {
     }
 
     this.dynamoDB = new DynamoDB.DocumentClient(options)
+    this.dynamoDBClient = new DynamoDBClient(options)
   }
 
-  async list(): Promise<TaskType[]> {
-    const params: AWS.DynamoDB.DocumentClient.ScanInput = {
-      TableName: this.tableName,
-    }
-
+  async list() {
     try {
-      const result = await this.dynamoDB.scan(params).promise()
-      return result.Items as TaskType[]
+      const params: ScanCommandInput = {
+        TableName: this.tableName,
+      }
+
+      const command = new ScanCommand(params)
+      const response = await this.dynamoDBClient.send(command)
+      return response.Items
     } catch (error) {
       console.error('Error listing tasks:', error)
       throw error
@@ -131,7 +141,7 @@ export default class Task {
   }
 }
 
-type TaskType = {
+export type TaskType = {
   id: string
   text: string
   done: string
