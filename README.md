@@ -60,4 +60,4 @@ aws dynamodb create-table --endpoint-url http://localhost:8000 --region localhos
 serverless offline start --aws-profile sso
 ```
 
-This will start up docker with dynamodb create the task table and then start the api offline
+This will start up Docker with Dynamodb, create the task table, and then start the API offline.

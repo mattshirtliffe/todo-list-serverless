@@ -21,12 +21,6 @@ provider:
             - 'arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:service}-taskTable-${sls:stage}'
 
 functions:
-  api:
-    handler: index.handler
-    events:
-      - httpApi:
-          path: /
-          method: get
   create:
     handler: create.handler
     events:
