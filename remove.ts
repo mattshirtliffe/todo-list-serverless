@@ -16,22 +16,20 @@ export const handler = async (
       )
     }
 
-    if (!event.body) {
-      throw new ServiceError('Bad Request: No data provided', 400)
+    if (!event.pathParameters || !event.pathParameters.id) {
+      throw new ServiceError(
+        'Bad Request: No ID provided in path parameters',
+        400
+      )
     }
 
-    const { text } = JSON.parse(Buffer.from(event.body, 'base64').toString())
-
-    if (!text) {
-      throw new ServiceError('Bad Request: Missing required field "text"', 400)
-    }
-
+    const { id } = event.pathParameters
     const task = new Task(tableName)
-    await task.create(text)
+    await task.delete(id)
 
     return {
-      statusCode: 201,
-      body: JSON.stringify({ message: 'Task created successfully' }),
+      statusCode: 204,
+      body: JSON.stringify({ message: 'Task deleted successfully' }),
     }
   } catch (error) {
     return handleErrorResponse(error)

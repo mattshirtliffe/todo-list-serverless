@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import { DynamoDB } from 'aws-sdk'
 
 export default class Task {
@@ -86,6 +87,45 @@ export default class Task {
       return updatedTask
     } catch (error) {
       console.error('Error modifying task', error)
+      throw error
+    }
+  }
+
+  async create(text: string) {
+    try {
+      const timestamp = new Date().getTime()
+
+      const params: DynamoDB.DocumentClient.PutItemInput = {
+        TableName: this.tableName,
+        Item: {
+          id: uuidv4(),
+          text: text,
+          done: false,
+          createdAt: timestamp.toString(),
+          updatedAt: timestamp.toString(),
+        },
+      }
+
+      const results = await this.dynamoDB.put(params).promise()
+      return results
+    } catch (error) {
+      console.error('Error creating task', error)
+      throw error
+    }
+  }
+
+  async delete(id: string) {
+    try {
+      const deleteParams: DynamoDB.DocumentClient.DeleteItemInput = {
+        TableName: this.tableName,
+        Key: {
+          id,
+        },
+      }
+
+      await this.dynamoDB.delete(deleteParams).promise()
+    } catch (error) {
+      console.error('Error deleting task', error)
       throw error
     }
   }
