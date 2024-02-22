@@ -3,6 +3,8 @@ import { DynamoDB } from 'aws-sdk'
 
 import {
   DynamoDBClient,
+  GetItemCommand,
+  GetItemCommandInput,
   ScanCommand,
   ScanCommandInput,
 } from '@aws-sdk/client-dynamodb'
@@ -44,14 +46,19 @@ export default class Task {
     }
   }
 
-  async fetch(id: string): Promise<TaskType | null> {
+  async fetch(id: string) {
     try {
-      const params: DynamoDB.DocumentClient.GetItemInput = {
-        Key: { id },
+      const params: GetItemCommandInput = {
         TableName: this.tableName,
+        Key: {
+          id: {
+            S: id,
+          },
+        },
       }
-      const result = await this.dynamoDB.get(params).promise()
-      return result.Item as TaskType | null
+      const command = new GetItemCommand(params)
+      const response = await this.dynamoDBClient.send(command)
+      return response.Item
     } catch (error) {
       console.error('Error fetching tasks', error)
       throw error
