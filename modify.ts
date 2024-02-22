@@ -51,6 +51,9 @@ export const handler = async (
         message: 'Task updated successfully',
         updatedTask,
       }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     }
   } catch (error) {
     return handleErrorResponse(error)

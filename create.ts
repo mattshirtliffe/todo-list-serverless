@@ -32,6 +32,9 @@ export const handler = async (
     return {
       statusCode: 201,
       body: JSON.stringify({ message: 'Task created successfully' }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     }
   } catch (error) {
     return handleErrorResponse(error)

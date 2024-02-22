@@ -10,5 +10,8 @@ export const handleErrorResponse = (error: ServiceError) => {
     body: JSON.stringify({
       error: errorMessage,
     }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
   }
 }

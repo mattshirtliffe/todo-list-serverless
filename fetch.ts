@@ -33,6 +33,9 @@ export const handler = async (
     return {
       statusCode: 200,
       body: JSON.stringify(result),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     }
   } catch (error) {
     return handleErrorResponse(error)

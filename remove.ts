@@ -37,6 +37,9 @@ export const handler = async (
     return {
       statusCode: 204,
       body: JSON.stringify({ message: 'Task deleted successfully' }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     }
   } catch (error) {
     return handleErrorResponse(error)

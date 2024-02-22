@@ -24,6 +24,9 @@ export const handler = async (
       body: JSON.stringify({
         tasks,
       }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     }
   } catch (error) {
     return handleErrorResponse(error)
