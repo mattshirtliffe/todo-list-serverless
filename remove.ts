@@ -24,7 +24,14 @@ export const handler = async (
     }
 
     const { id } = event.pathParameters
+
     const task = new Task(tableName)
+    const result = await task.fetch(id)
+
+    if (!result) {
+      throw new ServiceError('Task not found', 404)
+    }
+
     await task.delete(id)
 
     return {

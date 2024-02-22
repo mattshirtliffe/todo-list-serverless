@@ -30,11 +30,17 @@ export const handler = async (
       throw new ServiceError('Bad Request: No body provided', 400)
     }
 
+    const task = new Task(tableName)
+    const result = await task.fetch(id)
+
+    if (!result) {
+      throw new ServiceError('Task not found', 404)
+    }
+
     const { text, done } = JSON.parse(
       Buffer.from(event.body, 'base64').toString()
     )
 
-    const task = new Task(tableName)
     const updatedTask = await task.modify(id, text, done)
 
     return {
