@@ -41,13 +41,12 @@ export const handler = async (
       Buffer.from(event.body, 'base64').toString()
     )
 
-    const updatedTask = await task.modify(id, text, done)
+    await task.modify(id, text, done)
 
     return {
       statusCode: 200,
       body: JSON.stringify({
         message: 'Task updated successfully',
-        updatedTask,
       }),
     }
   } catch (error) {

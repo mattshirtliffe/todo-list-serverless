@@ -1,12 +1,17 @@
 import { v4 as uuidv4 } from 'uuid'
-import { DynamoDB } from 'aws-sdk'
 
 import {
+  DeleteItemCommand,
+  DeleteItemCommandInput,
   DynamoDBClient,
   GetItemCommand,
   GetItemCommandInput,
+  PutItemCommand,
+  PutItemCommandInput,
   ScanCommand,
   ScanCommandInput,
+  UpdateItemCommand,
+  UpdateItemCommandInput,
 } from '@aws-sdk/client-dynamodb'
 
 export default class Task {
@@ -27,7 +32,6 @@ export default class Task {
       }
     }
 
-    this.dynamoDB = new DynamoDB.DocumentClient(options)
     this.dynamoDBClient = new DynamoDBClient(options)
   }
 
@@ -73,26 +77,30 @@ export default class Task {
 
       if (text !== undefined) {
         updateExpressionParts.push('#text = :text')
-        expressionAttributeValues[':text'] = text
+        expressionAttributeValues[':text'] = { S: text }
         expressionAttributeNames['#text'] = 'text'
       }
 
       if (done !== undefined) {
         updateExpressionParts.push('#done = :done')
-        expressionAttributeValues[':done'] = done
+        expressionAttributeValues[':done'] = { BOOL: done }
         expressionAttributeNames['#done'] = 'done'
       }
 
       updateExpressionParts.push('#updatedAt = :updatedAt')
-      expressionAttributeValues[':updatedAt'] = new Date().getTime().toString()
+      expressionAttributeValues[':updatedAt'] = {
+        S: new Date().getTime().toString(),
+      }
       expressionAttributeNames['#updatedAt'] = 'updatedAt'
 
       const updateExpression = `set ${updateExpressionParts.join(', ')}`
 
-      const params: DynamoDB.DocumentClient.UpdateItemInput = {
+      const params: UpdateItemCommandInput = {
         TableName: this.tableName,
         Key: {
-          id: id,
+          id: {
+            S: id,
+          },
         },
         UpdateExpression: updateExpression,
         ExpressionAttributeNames: expressionAttributeNames,
@@ -100,10 +108,12 @@ export default class Task {
         ReturnValues: 'ALL_NEW',
       }
 
-      const updatedTask = await this.dynamoDB.update(params).promise()
-      return updatedTask
+      const command = new UpdateItemCommand(params)
+      const response = await this.dynamoDBClient.send(command)
+      return response
     } catch (error) {
       console.error('Error modifying task', error)
+      console.error(error.stack)
       throw error
     }
   }
@@ -111,20 +121,29 @@ export default class Task {
   async create(text: string) {
     try {
       const timestamp = new Date().getTime()
-
-      const params: DynamoDB.DocumentClient.PutItemInput = {
+      const params: PutItemCommandInput = {
         TableName: this.tableName,
         Item: {
-          id: uuidv4(),
-          text: text,
-          done: false,
-          createdAt: timestamp.toString(),
-          updatedAt: timestamp.toString(),
+          id: {
+            S: uuidv4(),
+          },
+          text: {
+            S: text,
+          },
+          done: {
+            BOOL: false,
+          },
+          createdAt: {
+            S: timestamp.toString(),
+          },
+          updatedAt: {
+            S: timestamp.toString(),
+          },
         },
       }
 
-      const results = await this.dynamoDB.put(params).promise()
-      return results
+      const command = new PutItemCommand(params)
+      await this.dynamoDBClient.send(command)
     } catch (error) {
       console.error('Error creating task', error)
       throw error
@@ -133,14 +152,17 @@ export default class Task {
 
   async delete(id: string) {
     try {
-      const deleteParams: DynamoDB.DocumentClient.DeleteItemInput = {
+      const params: DeleteItemCommandInput = {
         TableName: this.tableName,
         Key: {
-          id,
+          id: {
+            S: id,
+          },
         },
       }
 
-      await this.dynamoDB.delete(deleteParams).promise()
+      const command = new DeleteItemCommand(params)
+      await this.dynamoDBClient.send(command)
     } catch (error) {
       console.error('Error deleting task', error)
       throw error
