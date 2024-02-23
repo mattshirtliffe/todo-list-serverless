@@ -81,6 +81,8 @@ export default class Task {
           updatedAt: result.Item.updatedAt.S,
         }
       }
+
+      return null
     } catch (error) {
       console.error('Error fetching tasks', error)
       throw error
@@ -139,11 +141,12 @@ export default class Task {
   async create(text: string) {
     try {
       const timestamp = new Date().getTime()
+      const id = uuidv4()
       const params: PutItemCommandInput = {
         TableName: this.tableName,
         Item: {
           id: {
-            S: uuidv4(),
+            S: id,
           },
           text: {
             S: text,
