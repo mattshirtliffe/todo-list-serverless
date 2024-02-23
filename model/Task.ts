@@ -89,45 +89,50 @@ export default class Task {
     }
   }
 
+  buildModifyInput(id: string, text?: string, done?: boolean) {
+    const updateExpressionParts: string[] = []
+    const expressionAttributeValues = {}
+    const expressionAttributeNames = {}
+
+    if (text !== undefined) {
+      updateExpressionParts.push('#text = :text')
+      expressionAttributeValues[':text'] = { S: text }
+      expressionAttributeNames['#text'] = 'text'
+    }
+
+    if (done !== undefined) {
+      updateExpressionParts.push('#done = :done')
+      expressionAttributeValues[':done'] = { BOOL: done }
+      expressionAttributeNames['#done'] = 'done'
+    }
+
+    updateExpressionParts.push('#updatedAt = :updatedAt')
+    expressionAttributeValues[':updatedAt'] = {
+      S: new Date().getTime().toString(),
+    }
+    expressionAttributeNames['#updatedAt'] = 'updatedAt'
+
+    const updateExpression = `set ${updateExpressionParts.join(', ')}`
+
+    const params: UpdateItemCommandInput = {
+      TableName: this.tableName,
+      Key: {
+        id: {
+          S: id,
+        },
+      },
+      UpdateExpression: updateExpression,
+      ExpressionAttributeNames: expressionAttributeNames,
+      ExpressionAttributeValues: expressionAttributeValues,
+      ReturnValues: 'ALL_NEW',
+    }
+
+    return params
+  }
+
   async modify(id: string, text?: string, done?: boolean) {
     try {
-      const updateExpressionParts: string[] = []
-      const expressionAttributeValues = {}
-      const expressionAttributeNames = {}
-
-      if (text !== undefined) {
-        updateExpressionParts.push('#text = :text')
-        expressionAttributeValues[':text'] = { S: text }
-        expressionAttributeNames['#text'] = 'text'
-      }
-
-      if (done !== undefined) {
-        updateExpressionParts.push('#done = :done')
-        expressionAttributeValues[':done'] = { BOOL: done }
-        expressionAttributeNames['#done'] = 'done'
-      }
-
-      updateExpressionParts.push('#updatedAt = :updatedAt')
-      expressionAttributeValues[':updatedAt'] = {
-        S: new Date().getTime().toString(),
-      }
-      expressionAttributeNames['#updatedAt'] = 'updatedAt'
-
-      const updateExpression = `set ${updateExpressionParts.join(', ')}`
-
-      const params: UpdateItemCommandInput = {
-        TableName: this.tableName,
-        Key: {
-          id: {
-            S: id,
-          },
-        },
-        UpdateExpression: updateExpression,
-        ExpressionAttributeNames: expressionAttributeNames,
-        ExpressionAttributeValues: expressionAttributeValues,
-        ReturnValues: 'ALL_NEW',
-      }
-
+      const params = this.buildModifyInput(id, text, done)
       const command = new UpdateItemCommand(params)
       const response = await this.dynamoDBClient.send(command)
       return response
