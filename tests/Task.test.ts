@@ -7,7 +7,12 @@ import {
 } from '@aws-sdk/client-dynamodb'
 import { mockClient } from 'aws-sdk-client-mock'
 import 'aws-sdk-client-mock-jest'
-import { v4 } from 'uuid'
+
+const mockUuid = '775b765f-bb9e-46aa-9e9e-3861788bc027'
+
+jest.mock('uuid', () => ({
+  v4: jest.fn(() => mockUuid),
+}))
 
 describe('Task', () => {
   let task: Task
@@ -20,6 +25,7 @@ describe('Task', () => {
 
   afterEach(() => {
     mockDynamoDBClient.reset()
+    jest.clearAllMocks()
   })
 
   describe('list', () => {
@@ -86,12 +92,6 @@ describe('Task', () => {
 
   describe('create', () => {
     it('should create a task', async () => {
-      const mockUuid = '775b765f-bb9e-46aa-9e9e-3861788bc027'
-
-      jest.mock('uuid', () => ({
-        v4: jest.fn().mockReturnValue(mockUuid),
-      }))
-
       const mockDate = new Date('2024-02-23T00:00:00.000Z')
       jest.spyOn(global, 'Date').mockImplementation(() => mockDate)
 
@@ -101,7 +101,7 @@ describe('Task', () => {
         Item: {
           createdAt: { S: '1708646400000' },
           done: { BOOL: false },
-          id: expect.any(Object),
+          id: { S: '775b765f-bb9e-46aa-9e9e-3861788bc027' },
           text: { S: 'Do some things 1' },
           updatedAt: { S: '1708646400000' },
         },
