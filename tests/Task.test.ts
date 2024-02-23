@@ -1,27 +1,30 @@
 import Task from '../model/Task'
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
-
-jest.mock('@aws-sdk/client-dynamodb')
+import {
+  DynamoDBClient,
+  GetItemCommand,
+  PutItemCommand,
+  ScanCommand,
+} from '@aws-sdk/client-dynamodb'
+import { mockClient } from 'aws-sdk-client-mock'
+import 'aws-sdk-client-mock-jest'
+import { v4 } from 'uuid'
 
 describe('Task', () => {
   let task: Task
-  let mockSend: jest.Mock
+  let mockDynamoDBClient
 
   beforeEach(() => {
-    mockSend = jest.fn()
-    ;(DynamoDBClient as jest.Mock).mockImplementation(() => ({
-      send: mockSend,
-    }))
+    mockDynamoDBClient = mockClient(DynamoDBClient)
     task = new Task('test-table')
   })
 
   afterEach(() => {
-    jest.clearAllMocks()
+    mockDynamoDBClient.reset()
   })
 
   describe('list', () => {
     it('should return an array of tasks', async () => {
-      mockSend.mockResolvedValueOnce({
+      mockDynamoDBClient.on(ScanCommand).resolves({
         Items: [
           {
             id: { S: '775b765f-bb9e-46aa-9e9e-3861788bc027' },
@@ -44,18 +47,10 @@ describe('Task', () => {
       expect(result).toHaveLength(2)
       expect(result[0].id).toBe('775b765f-bb9e-46aa-9e9e-3861788bc027')
       expect(result[1].id).toBe('f79ff465-9303-4463-b99f-249e1193bd1e')
-
-      mockSend.mockResolvedValueOnce({
-        Items: [],
-      })
-
-      result = await task.list()
-      expect(result).toHaveLength(0)
-      expect(result).toEqual([])
     })
 
     it('should return an empty array of tasks', async () => {
-      mockSend.mockResolvedValueOnce({
+      mockDynamoDBClient.on(ScanCommand).resolves({
         Items: [],
       })
 
@@ -66,7 +61,7 @@ describe('Task', () => {
 
   describe('fetch', () => {
     it('should fetch a task by ID', async () => {
-      mockSend.mockResolvedValueOnce({
+      mockDynamoDBClient.on(GetItemCommand).resolves({
         Item: {
           id: { S: '775b765f-bb9e-46aa-9e9e-3861788bc027' },
           text: { S: 'Task 1' },
@@ -81,7 +76,7 @@ describe('Task', () => {
     })
 
     it('should fetch a task by ID but fail', async () => {
-      mockSend.mockResolvedValueOnce({
+      mockDynamoDBClient.on(GetItemCommand).resolves({
         Item: null,
       })
       const result = await task.fetch('1')
@@ -91,8 +86,27 @@ describe('Task', () => {
 
   describe('create', () => {
     it('should create a task', async () => {
+      const mockUuid = '775b765f-bb9e-46aa-9e9e-3861788bc027'
+
+      jest.mock('uuid', () => ({
+        v4: jest.fn().mockReturnValue(mockUuid),
+      }))
+
+      const mockDate = new Date('2024-02-23T00:00:00.000Z')
+      jest.spyOn(global, 'Date').mockImplementation(() => mockDate)
+
       await task.create('Do some things 1')
-      expect(mockSend).toHaveBeenCalledTimes(1)
+      expect(mockDynamoDBClient).toHaveReceivedCommand(PutItemCommand)
+      expect(mockDynamoDBClient).toHaveReceivedCommandWith(PutItemCommand, {
+        Item: {
+          createdAt: { S: '1708646400000' },
+          done: { BOOL: false },
+          id: expect.any(Object),
+          text: { S: 'Do some things 1' },
+          updatedAt: { S: '1708646400000' },
+        },
+        TableName: 'test-table',
+      })
     })
   })
 })
